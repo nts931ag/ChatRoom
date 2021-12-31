@@ -2,6 +2,7 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.Buffer;
+import java.util.ArrayList;
 
 /**
  * PACKAGE_NAME
@@ -10,13 +11,25 @@ import java.nio.Buffer;
  * Description: ...
  */
 public class Server {
+    ServerSocket server;
+    ArrayList<Socket> lstSocket;
+
     Server(){
+        try {
+            server = new ServerSocket(3200);
+            lstSocket = new ArrayList<Socket>();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void startServer(){
         try{
-            ServerSocket s = new ServerSocket(3200);
             do {
                 System.out.println("Waiting for a client");
-                Socket ss = s.accept();
-                ClientConnectionThread cct=new ClientConnectionThread(ss);
+                Socket ss = server.accept();
+                lstSocket.add(ss);
+                ClientConnectionThread cct=new ClientConnectionThread(ss, lstSocket);
                 cct.start();
             }while(true);
         }catch(Exception e){
@@ -25,7 +38,8 @@ public class Server {
     }
 
     public static void main(String[] args){
-        new Server();
+        Server s = new Server();
+        s.startServer();
     }
 }
 

@@ -10,8 +10,11 @@ import java.net.Socket;
 public class SendThread extends Thread{
     private Socket sock;
 
+    private String message;
+
     SendThread(Socket s){
         this.sock = s;
+
     }
 
     @Override
@@ -20,13 +23,15 @@ public class SendThread extends Thread{
         BufferedWriter bw = null;
         DataInputStream dis = null;
         try {
-            dis = new DataInputStream(System.in);
-            os = sock.getOutputStream();
-            bw = new BufferedWriter(new OutputStreamWriter(os));
-            String sentMessage = dis.readLine();
-            bw.write("Receive: "+ sentMessage);
-            bw.newLine();
-            bw.flush();
+            do {
+                dis = new DataInputStream(System.in);
+                os = sock.getOutputStream();
+                bw = new BufferedWriter(new OutputStreamWriter(os));
+                message = dis.readLine();
+                bw.write(sock.getLocalPort() + ": " + message);
+                bw.newLine();
+                bw.flush();
+            }while(true);
         } catch (IOException e) {
             e.printStackTrace();
         }finally {

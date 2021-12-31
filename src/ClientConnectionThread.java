@@ -1,5 +1,6 @@
 import java.io.*;
 import java.net.Socket;
+import java.util.ArrayList;
 
 /**
  * PACKAGE_NAME
@@ -9,45 +10,28 @@ import java.net.Socket;
  */
 public class ClientConnectionThread extends Thread {
     Socket s;
+    ArrayList<Socket> lstSock;
+    String sentMessage;
+    String receivedMessage;
 
-
-    ClientConnectionThread(Socket ss) {
+    ClientConnectionThread(Socket ss, ArrayList<Socket> lstSocket) {
         this.s = ss;
+        this.lstSock = lstSocket;
     }
 
     @Override
     public void run() {
         System.out.println(s.getPort());
         try {
-            InputStream is = s.getInputStream();
-            BufferedReader br = new BufferedReader(new InputStreamReader(is));
 
-            OutputStream os = s.getOutputStream();
-            BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(os));
+            /*SendThread st = new SendThread(s);
+            st.start();*/
+            ReceiveThread rt = new ReceiveThread(s);
+            rt.start();
 
-            String sentMessage = "";
-            String receiveMessage;
+            SendBroadCast sbc = new SendBroadCast(s,lstSock);
+            sbc.setSentMessage(rt.getMessage());
 
-            do {
-                /*receiveMessage = br.readLine();
-                System.out.println("Receive: " + receiveMessage);
-                if (receiveMessage.equalsIgnoreCase("quit")) {
-                    System.out.println("Client has left: ");
-                    break;
-                } else {
-                    DataInputStream dis = new DataInputStream(System.in);
-                    sentMessage = dis.readLine();
-                    bw.write(sentMessage);
-                    bw.newLine();
-                    bw.flush();
-                }*/
-                SendThread st = new SendThread(s);
-                st.start();
-                ReceiveThread rt = new ReceiveThread(s);
-                rt.start();
-            } while (true);
-            /*br.close();
-            bw.close();*/
         } catch (Exception e) {
             e.printStackTrace();
         }

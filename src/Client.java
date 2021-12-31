@@ -13,7 +13,7 @@ public class Client {
             Socket s = new Socket("localhost",3200);
             System.out.println(s.getPort());
 
-            InputStream is = s.getInputStream();
+            /*InputStream is = s.getInputStream();
             BufferedReader br = new BufferedReader(new InputStreamReader(is));
 
             OutputStream os = s.getOutputStream();
@@ -36,7 +36,13 @@ public class Client {
                 }
             }while(true);
             br.close();
-            bw.close();
+            bw.close();*/
+
+            SendThread st = new SendThread(s);
+            st.start();
+            ReceiveThread rt = new ReceiveThread(s);
+            rt.start();
+
         }catch (Exception e){
             e.printStackTrace();
         }

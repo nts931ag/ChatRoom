@@ -9,8 +9,13 @@ import java.net.Socket;
  */
 public class ReceiveThread extends Thread{
     private Socket sock;
+    private String message;
     ReceiveThread(Socket s){
         this.sock = s;
+    }
+
+    public String getMessage(){
+        return message;
     }
 
     @Override
@@ -18,10 +23,12 @@ public class ReceiveThread extends Thread{
         InputStream is = null;
         BufferedReader br = null;
         try {
-            is = sock.getInputStream();
-            br = new BufferedReader(new InputStreamReader(is));
-            String receiveMessage = br.readLine();
-            System.out.println(receiveMessage);
+            do {
+                is = sock.getInputStream();
+                br = new BufferedReader(new InputStreamReader(is));
+                this.message = br.readLine();
+                System.out.println(message);
+            }while(true);
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
