@@ -1,54 +1,92 @@
 import java.io.*;
 import java.net.Socket;
+import java.util.Scanner;
 
 /**
  * PACKAGE_NAME
  * Created by Thai Son
- * Date 28/12/2021 - 9:44 CH
+ * Date 03/01/2022 - 8:13 CH
  * Description: ...
  */
 public class Client {
-    public Client(){
+    private Socket socket;
+    private BufferedReader br;
+    private BufferedWriter bw;
+    private String username;
+
+    public Client(Socket socket, String username){
         try{
-            Socket s = new Socket("localhost",3200);
-            System.out.println(s.getPort());
+            this.socket = socket;
+            br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            bw = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+            this.username = username;
+        }catch(IOException e){
+            closeEverything(socket, bw, br);
+        }
+    }
 
-            /*InputStream is = s.getInputStream();
-            BufferedReader br = new BufferedReader(new InputStreamReader(is));
+    public void sendMessage(){
+        try{
+            bw.write(username);
+            bw.newLine();
+            bw.flush();
 
-            OutputStream os = s.getOutputStream();
-            BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(os));
-
-            String sentMessage = "";
-            String receiveMessage;
-            do{
-                DataInputStream dis=new DataInputStream(System.in);
-                sentMessage = dis.readLine();
-                bw.write(sentMessage);
+            Scanner scanner = new Scanner(System.in);
+            while(socket.isConnected()){
+                String messageToSend = scanner.nextLine();
+                bw.write(username + ": " + messageToSend);
                 bw.newLine();
                 bw.flush();
+            }
+        }catch (IOException e){
+            closeEverything(socket, bw, br);
+        }
+    }
 
-                if(sentMessage.equalsIgnoreCase("quit"))
-                    break;
-                else{
-                    receiveMessage = br.readLine();
-                    System.out.println("Receive: "+receiveMessage);
+    public void listenForMessage(){
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                String msgFormGroupChat;
+
+                while(socket.isConnected()){
+                    try{
+                        msgFormGroupChat = br.readLine();
+                        System.out.println(msgFormGroupChat);
+                    }catch(IOException e){
+                        closeEverything(socket, bw, br);
+                    }
                 }
-            }while(true);
-            br.close();
-            bw.close();*/
+            }
+        }).start();
+    }
 
-            SendThread st = new SendThread(s);
-            st.start();
-            ReceiveThread rt = new ReceiveThread(s);
-            rt.start();
+    public void closeEverything(Socket s, BufferedWriter bw, BufferedReader br){
+        try{
+            if(bw != null){
+                bw.close();
+            }
 
-        }catch (Exception e){
+            if(br != null){
+                br.close();
+            }
+
+            if(s != null){
+                s.close();
+            }
+        }catch (IOException e){
             e.printStackTrace();
         }
     }
 
-    public static void main(String[] args){
-        new Client();
+    public static void main(String[] args) throws IOException {
+        Scanner sc = new Scanner(System.in);
+        System.out.print("Enter your username for the group chat: ");
+        String username = sc.nextLine();
+
+        Socket s = new Socket("localhost", 5555);
+        Client client = new Client(s,username);
+        client.listenForMessage();
+        client.sendMessage();
     }
 }

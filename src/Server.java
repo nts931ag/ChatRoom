@@ -1,45 +1,54 @@
-import java.io.*;
+import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.Buffer;
-import java.util.ArrayList;
 
 /**
  * PACKAGE_NAME
  * Created by Thai Son
- * Date 28/12/2021 - 4:48 CH
+ * Date 03/01/2022 - 7:37 CH
  * Description: ...
  */
 public class Server {
-    ServerSocket server;
-    ArrayList<Socket> lstSocket;
+    private final ServerSocket serverSocket;
 
-    Server(){
-        try {
-            server = new ServerSocket(3200);
-            lstSocket = new ArrayList<Socket>();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    public Server(ServerSocket serverSocket){
+        this.serverSocket = serverSocket;
     }
 
     public void startServer(){
         try{
-            do {
-                System.out.println("Waiting for a client");
-                Socket ss = server.accept();
-                lstSocket.add(ss);
-                ClientConnectionThread cct=new ClientConnectionThread(ss, lstSocket);
-                cct.start();
-            }while(true);
-        }catch(Exception e){
+            while(!serverSocket.isClosed()){
+                Socket socket = this.serverSocket.accept();
+                System.out.println("A new client has connected!");
+                HandleConnection connection = new HandleConnection(socket);
+                Thread thread = new Thread(connection);
+                thread.start();
+            }
+        }catch(IOException e){
+            closeServer();
+        }
+    }
+
+    public void closeServer(){
+        try{
+            if(serverSocket != null){
+                serverSocket.close();
+            }
+        }catch (Exception e){
             e.printStackTrace();
         }
     }
 
     public static void main(String[] args){
-        Server s = new Server();
-        s.startServer();
-    }
-}
 
+        ServerSocket ss = null;
+        try {
+            ss = new ServerSocket(5555);
+            Server server = new Server(ss);
+            server.startServer();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+}
