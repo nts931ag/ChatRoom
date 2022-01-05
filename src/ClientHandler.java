@@ -14,16 +14,18 @@ public class ClientHandler implements Runnable{
     private Socket socket;
     private BufferedReader bufferedReader;
     private BufferedWriter bufferedWriter;
+
     private String clientUsername;
+    private boolean isLogin = false;
 
     public ClientHandler(Socket socket) {
         try{
             this.socket = socket;
             this.bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
             this.bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            this.clientUsername = bufferedReader.readLine();
-            lstClientHandler.add(this);
-            broadcastMessage("Server: " + this.clientUsername +" has joined the chat!");
+//            this.clientUsername = bufferedReader.readLine();
+//            lstClientHandler.add(this);
+//            broadcastMessage("Server: " + this.clientUsername +" has joined the chat!");
         }catch (IOException e){
             closeEverything(socket, bufferedWriter ,bufferedReader);
         }
@@ -68,12 +70,34 @@ public class ClientHandler implements Runnable{
 
     @Override
     public void run() {
-        String messageFromClient;
+        String[] tokens;
 
         while(socket.isConnected()){
             try{
-                messageFromClient = bufferedReader.readLine();
-                broadcastMessage(messageFromClient);
+                String ttt = bufferedReader.readLine();
+                tokens = ttt.split(" ");
+                if(tokens != null) {
+                    if (this.isLogin == false) {
+                        if (tokens[0].equals("login")) {
+                            String temp = "invalid";
+                            if (tokens[1].equals("thaison") || tokens[1].equals("thaiduy")) {
+                                this.clientUsername = tokens[1];
+                                lstClientHandler.add(this);
+                                broadcastMessage("Server: " + this.clientUsername + " has joined the chat!");
+                                temp = "valid";
+                                isLogin = true;
+                            }
+                            bufferedWriter.write("Server: " + temp);
+                            bufferedWriter.newLine();
+                            bufferedWriter.flush();
+                        } else if (tokens[0].equals("signup")) {
+                            String temp = "invalid";
+
+                        }
+                    } else {
+                        broadcastMessage(ttt);
+                    }
+                }
             }catch (IOException e){
                 closeEverything(socket,bufferedWriter,bufferedReader);
                 break;

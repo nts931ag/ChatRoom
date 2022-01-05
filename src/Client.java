@@ -13,12 +13,13 @@ public class Client {
     private BufferedWriter bufferedWriter;
     private BufferedReader bufferedReader;
     private String username;
-    public Client(Socket socket, String username){
+    private boolean isLogin = false;
+
+    public Client(Socket socket){
         try{
             this.socket = socket;
             this.bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             this.bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
-            this.username = username;
         }catch (IOException e){
             closeEverything(socket, bufferedWriter, bufferedReader);
         }
@@ -26,14 +27,15 @@ public class Client {
 
     public void sendMessage(){
         try {
-            bufferedWriter.write(username);
-            bufferedWriter.newLine();
-            bufferedWriter.flush();
-
             Scanner sc = new Scanner(System.in);
             while(socket.isConnected()){
                 String messageToSend = sc.nextLine();
-                bufferedWriter.write(username+ ": " + messageToSend);
+                if(isLogin == false){
+                    this.username = messageToSend.split(" ")[1];
+                    bufferedWriter.write(messageToSend);
+                }else{
+                    bufferedWriter.write(username+ ": " + messageToSend);
+                }
                 bufferedWriter.newLine();
                 bufferedWriter.flush();
             }
@@ -46,12 +48,22 @@ public class Client {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                String msgFormGroupChat;
+                String[] msgFormGroupChat;
 
                 while(socket.isConnected()){
                     try{
-                        msgFormGroupChat = bufferedReader.readLine();
-                        System.out.println(msgFormGroupChat);
+                        String ttt = bufferedReader.readLine();
+                        msgFormGroupChat = ttt.split(" ");
+                        if(msgFormGroupChat != null) {
+                            if (isLogin == false) {
+                                if(msgFormGroupChat[1].equals("valid")){
+                                    isLogin = true;
+                                }
+                                System.out.println(ttt);
+                            } else {
+                                System.out.println(ttt);
+                            }
+                        }
                     }catch (IOException e){
                         closeEverything(socket,bufferedWriter,bufferedReader);
                     }
@@ -77,11 +89,9 @@ public class Client {
     }
 
     public static void main(String[] args) throws Exception{
-        Scanner sc = new Scanner(System.in);
-        System.out.print("Enter your username for the group chat: ");
-        String username = sc.nextLine();
+
         Socket socket = new Socket("localhost", 5555);
-        Client client = new Client(socket, username);
+        Client client = new Client(socket);
         client.listenForMessage();
         client.sendMessage();
     }
