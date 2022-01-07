@@ -1,5 +1,7 @@
 import java.io.*;
 import java.net.Socket;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Scanner;
 
 /**
@@ -30,11 +32,23 @@ public class Client {
             Scanner sc = new Scanner(System.in);
             while(socket.isConnected()){
                 String messageToSend = sc.nextLine();
-                if(isLogin == false){
-                    this.username = messageToSend.split(" ")[1];
-                    bufferedWriter.write(messageToSend);
-                }else{
-                    bufferedWriter.write(username+ ": " + messageToSend);
+                String[] tokens = messageToSend.split(": ");
+                if(tokens[0].equals("login")){
+                    username = tokens[1];
+                    bufferedWriter.write("guess: " + tokens[1] + "-login request");
+                }else if(tokens[0].equals("signup")){
+                    bufferedWriter.write("guess: " + tokens[1] + "-signup request");
+                }else if(tokens[0].equals("logout")){
+                    bufferedWriter.write(tokens[0] + ": " + username);
+                    bufferedWriter.newLine();
+                    bufferedWriter.flush();
+                    break;
+                }
+                else if(tokens[0].equals("send")){
+                    bufferedWriter.write( "send: " + tokens[1]);
+                }else if(tokens[0].equals("send file")){
+
+                    //
                 }
                 bufferedWriter.newLine();
                 bufferedWriter.flush();
@@ -44,25 +58,36 @@ public class Client {
         }
     }
 
+    public void sendFile(){
+
+    }
+
+    public void receiveFile(){
+
+    }
+
     public void listenForMessage(){
         new Thread(new Runnable() {
             @Override
             public void run() {
-                String[] msgFormGroupChat;
-
+                String[] tokens;
                 while(socket.isConnected()){
                     try{
-                        String ttt = bufferedReader.readLine();
-                        msgFormGroupChat = ttt.split(" ");
-                        if(msgFormGroupChat != null) {
-                            if (isLogin == false) {
-                                if(msgFormGroupChat[1].equals("valid")){
+                        String msgFromServer = bufferedReader.readLine();
+                        if(msgFromServer != null){
+                            tokens = msgFromServer.split(": ");
+                            if(tokens[0].equals("Server")){
+                                if(tokens[1].equals("login-valid")){
                                     isLogin = true;
+                                }else if(tokens[1].equals("logout-success")){
+                                    isLogin = false;
+                                    closeEverything(socket,bufferedWriter,bufferedReader);
+                                    break;
                                 }
-                                System.out.println(ttt);
-                            } else {
-                                System.out.println(ttt);
+                            }else{
+
                             }
+                            System.out.println(msgFromServer);
                         }
                     }catch (IOException e){
                         closeEverything(socket,bufferedWriter,bufferedReader);
