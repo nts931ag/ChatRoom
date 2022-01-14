@@ -1,7 +1,7 @@
+package clientside;
+
 import java.io.*;
 import java.net.Socket;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Scanner;
 
 /**
@@ -76,7 +76,7 @@ public class Client {
                         String msgFromServer = bufferedReader.readLine();
                         if(msgFromServer != null){
                             tokens = msgFromServer.split(": ");
-                            if(tokens[0].equals("Server")){
+                            if(tokens[0].equals("serverside")){
                                 if(tokens[1].equals("login-valid")){
                                     isLogin = true;
                                 }else if(tokens[1].equals("logout-success")){

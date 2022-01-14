@@ -1,4 +1,5 @@
-import javax.swing.plaf.basic.BasicButtonUI;
+package serverside;
+
 import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -25,7 +26,7 @@ public class ClientHandler implements Runnable{
             this.bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 //            this.clientUsername = bufferedReader.readLine();
 //            lstClientHandler.add(this);
-//            broadcastMessage("Server: " + this.clientUsername +" has joined the chat!");
+//            broadcastMessage("serverside.Server: " + this.clientUsername +" has joined the chat!");
         }catch (IOException e){
             closeEverything(socket, bufferedWriter ,bufferedReader);
         }
