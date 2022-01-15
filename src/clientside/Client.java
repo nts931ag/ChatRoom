@@ -12,18 +12,24 @@ import java.util.Scanner;
  */
 public class Client {
     private Socket socket;
-    private BufferedWriter bufferedWriter;
-    private BufferedReader bufferedReader;
+
+    //private BufferedWriter bufferedWriter;
+    private DataOutputStream dos;
+    //private BufferedReader bufferedReader;
+    private DataInputStream dis;
     private String username;
     private boolean isLogin = false;
 
     public Client(Socket socket){
         try{
             this.socket = socket;
-            this.bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            this.bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+            //this.bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            this.dos = new DataOutputStream(socket.getOutputStream());
+            //this.bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+            this.dis = new DataInputStream(socket.getInputStream());
         }catch (IOException e){
-            closeEverything(socket, bufferedWriter, bufferedReader);
+            closeEverything(socket,dos,dis);
+//            closeEverything(socket, bufferedWriter, bufferedReader);
         }
     }
 
@@ -35,26 +41,33 @@ public class Client {
                 String[] tokens = messageToSend.split(": ");
                 if(tokens[0].equals("login")){
                     username = tokens[1];
-                    bufferedWriter.write("guess: " + tokens[1] + "-login request");
+                    dos.writeUTF("guess: " + tokens[1] + "-login request");
+                    //bufferedWriter.write("guess: " + tokens[1] + "-login request");
                 }else if(tokens[0].equals("signup")){
-                    bufferedWriter.write("guess: " + tokens[1] + "-signup request");
+                    dos.writeUTF("guess: " + tokens[1] + "-signup request");
+                    //bufferedWriter.write("guess: " + tokens[1] + "-signup request");
                 }else if(tokens[0].equals("logout")){
-                    bufferedWriter.write(tokens[0] + ": " + username);
-                    bufferedWriter.newLine();
-                    bufferedWriter.flush();
+                    dos.writeUTF(tokens[0] + ": " + username);
+                    dos.flush();
+
+//                    bufferedWriter.write(tokens[0] + ": " + username);
+//                    bufferedWriter.newLine();
+//                    bufferedWriter.flush();
                     break;
                 }
                 else if(tokens[0].equals("send")){
-                    bufferedWriter.write( "send: " + tokens[1]);
+                    dos.writeUTF("send: " + tokens[1]);
+//                    bufferedWriter.write( "send: " + tokens[1]);
                 }else if(tokens[0].equals("send file")){
 
                     //
                 }
-                bufferedWriter.newLine();
-                bufferedWriter.flush();
+//                bufferedWriter.newLine();
+                dos.flush();
             }
         }catch (IOException e){
-            closeEverything(socket,bufferedWriter,bufferedReader);
+            closeEverything(socket,dos,dis);
+//            closeEverything(socket,bufferedWriter,bufferedReader);
         }
     }
 
@@ -73,7 +86,8 @@ public class Client {
                 String[] tokens;
                 while(socket.isConnected()){
                     try{
-                        String msgFromServer = bufferedReader.readLine();
+//                        String msgFromServer = bufferedReader.readLine();
+                        String msgFromServer = dis.readUTF();
                         if(msgFromServer != null){
                             tokens = msgFromServer.split(": ");
                             if(tokens[0].equals("serverside")){
@@ -81,7 +95,8 @@ public class Client {
                                     isLogin = true;
                                 }else if(tokens[1].equals("logout-success")){
                                     isLogin = false;
-                                    closeEverything(socket,bufferedWriter,bufferedReader);
+                                    closeEverything(socket,dos,dis);
+//                                    closeEverything(socket,bufferedWriter,bufferedReader);
                                     break;
                                 }
                             }else{
@@ -90,11 +105,28 @@ public class Client {
                             System.out.println(msgFromServer);
                         }
                     }catch (IOException e){
-                        closeEverything(socket,bufferedWriter,bufferedReader);
+                        closeEverything(socket,dos,dis);
+//                        closeEverything(socket,bufferedWriter,bufferedReader);
                     }
                 }
             }
         }).start();
+    }
+
+    private void closeEverything(Socket socket, DataOutputStream dos, DataInputStream dis) {
+        try{
+            if(socket !=null){
+                socket.close();
+            }
+            if(dos != null){
+                dos.close();
+            }
+            if(dis != null){
+                dis.close();
+            }
+        }catch (IOException e){
+            e.printStackTrace();
+        }
     }
 
     private void closeEverything(Socket socket, BufferedWriter bufferedWriter, BufferedReader bufferedReader) {
