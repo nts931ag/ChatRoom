@@ -1,7 +1,10 @@
 package clientside;
 
+import account.Account;
+
 import java.io.*;
 import java.net.Socket;
+import java.nio.channels.AcceptPendingException;
 import java.util.Scanner;
 
 /**
@@ -13,107 +16,102 @@ import java.util.Scanner;
 public class Client {
     private Socket socket;
 
-    //private BufferedWriter bufferedWriter;
     private DataOutputStream dos;
-    //private BufferedReader bufferedReader;
     private DataInputStream dis;
-    private String username;
+//    private String username;
+    private Account account;
     private boolean isLogin = false;
 
     public Client(Socket socket){
         try{
             this.socket = socket;
-            //this.bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             this.dos = new DataOutputStream(socket.getOutputStream());
-            //this.bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
             this.dis = new DataInputStream(socket.getInputStream());
         }catch (IOException e){
             closeEverything(socket,dos,dis);
-//            closeEverything(socket, bufferedWriter, bufferedReader);
         }
     }
 
-    public void sendMessage(){
-        try {
-            Scanner sc = new Scanner(System.in);
-            while(socket.isConnected()){
-                String messageToSend = sc.nextLine();
-                String[] tokens = messageToSend.split(": ");
-                if(tokens[0].equals("login")){
-                    username = tokens[1];
-                    dos.writeUTF("guess: " + tokens[1] + "-login request");
-                    //bufferedWriter.write("guess: " + tokens[1] + "-login request");
-                }else if(tokens[0].equals("signup")){
-                    dos.writeUTF("guess: " + tokens[1] + "-signup request");
-                    //bufferedWriter.write("guess: " + tokens[1] + "-signup request");
-                }else if(tokens[0].equals("logout")){
-                    dos.writeUTF(tokens[0] + ": " + username);
-                    dos.flush();
-
-//                    bufferedWriter.write(tokens[0] + ": " + username);
-//                    bufferedWriter.newLine();
-//                    bufferedWriter.flush();
-                    break;
-                }
-                else if(tokens[0].equals("send")){
-                    dos.writeUTF("send: " + tokens[1]);
-//                    bufferedWriter.write( "send: " + tokens[1]);
-                }else if(tokens[0].equals("send file")){
-
-                    //
-                }
-//                bufferedWriter.newLine();
-                dos.flush();
-            }
-        }catch (IOException e){
+    public void reqAuthenticate(String type, String Username, String Password){
+        String messageToSend = new String("{" + type +"}" + "`{" + Username +"}" +"`{" + Password +"}");
+        account = new Account(Username,Password);
+        try{
+            dos.writeUTF(messageToSend);
+        }catch(IOException ioe){
             closeEverything(socket,dos,dis);
-//            closeEverything(socket,bufferedWriter,bufferedReader);
         }
     }
 
-    public void sendFile(){
+    public boolean authenticateRes(){
+        try {
+            String messageFromServer = dis.readUTF();
+            String[] tokens;
+            if(messageFromServer != null){
+                tokens = messageFromServer.split("`");
 
-    }
-
-    public void receiveFile(){
-
-    }
-
-    public void listenForMessage(){
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                String[] tokens;
-                while(socket.isConnected()){
-                    try{
-//                        String msgFromServer = bufferedReader.readLine();
-                        String msgFromServer = dis.readUTF();
-                        if(msgFromServer != null){
-                            tokens = msgFromServer.split(": ");
-                            if(tokens[0].equals("serverside")){
-                                if(tokens[1].equals("login-valid")){
-                                    isLogin = true;
-                                }else if(tokens[1].equals("logout-success")){
-                                    isLogin = false;
-                                    closeEverything(socket,dos,dis);
-//                                    closeEverything(socket,bufferedWriter,bufferedReader);
-                                    break;
-                                }
-                            }else{
-
-                            }
-                            System.out.println(msgFromServer);
-                        }
-                    }catch (IOException e){
-                        closeEverything(socket,dos,dis);
-//                        closeEverything(socket,bufferedWriter,bufferedReader);
-                    }
+                if(tokens[2].equals("{success}")){
+                    return true;
                 }
             }
-        }).start();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 
-    private void closeEverything(Socket socket, DataOutputStream dos, DataInputStream dis) {
+    public void sendMessage(String type, String msg){
+        String messageToSend = new String("{" + type +"}" + "`{" + account.getUsername() +"}" +"`{" + msg +"}");
+
+        try{
+            dos.writeUTF(messageToSend);
+        }catch(IOException ioe){
+            closeEverything(socket,dos,dis);
+        }
+    }
+
+    public void sendFile(File file){
+        try{
+            FileInputStream fileInputStream = new FileInputStream(file);
+
+            String fileName = file.getName();
+            byte[] fileNameBytes = fileName.getBytes();
+
+            byte[] fileContentBytes = new byte[(int) file.length()];
+            fileInputStream.read(fileContentBytes);
+
+            dos.writeInt(fileNameBytes.length);
+            dos.write(fileNameBytes);
+            dos.writeInt(fileContentBytes.length);
+            dos.write(fileContentBytes);
+            fileInputStream.close();
+        }catch(IOException ioe){
+            ioe.printStackTrace();
+        }
+    }
+
+    public void receiveFile(String address){
+        try{
+            int fileNameLength = dis.readInt();
+            if(fileNameLength > 0){
+                byte[] fileNameBytes = new byte[fileNameLength];
+                dis.readFully(fileNameBytes, 0, fileNameLength);
+                String fileName = new String(fileNameBytes);
+                int fileContentLength = dis.readInt();
+                if(fileContentLength > 0){
+                    byte[] fileContentBytes = new byte[fileContentLength];
+                    dis.readFully(fileContentBytes,0,fileContentLength);
+                    FileOutputStream fileOutputStream = new FileOutputStream(address + "\\" + fileName);
+                    fileOutputStream.write(fileContentBytes);
+                    fileOutputStream.close();
+                }
+            }
+
+        }catch(IOException ioe){
+            ioe.printStackTrace();
+        }
+    }
+
+    public void closeEverything(Socket socket, DataOutputStream dos, DataInputStream dis) {
         try{
             if(socket !=null){
                 socket.close();
@@ -129,28 +127,19 @@ public class Client {
         }
     }
 
-    private void closeEverything(Socket socket, BufferedWriter bufferedWriter, BufferedReader bufferedReader) {
-        try{
-            if(socket !=null){
-                socket.close();
-            }
-            if(bufferedWriter != null){
-                bufferedWriter.close();
-            }
-            if(bufferedReader != null){
-                bufferedReader.close();
-            }
-        }catch (IOException e){
-            e.printStackTrace();
-        }
+    public Socket getSocket() {
+        return socket;
     }
 
-    public static void main(String[] args) throws Exception{
-
-        Socket socket = new Socket("localhost", 5555);
-        Client client = new Client(socket);
-        client.listenForMessage();
-        client.sendMessage();
+    public DataOutputStream getDos(){
+        return dos;
     }
 
+    public DataInputStream getDis(){
+        return dis;
+    }
+
+    public String getUsername(){
+        return account.getUsername();
+    }
 }

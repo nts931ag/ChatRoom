@@ -3,7 +3,7 @@ package serverside;
 import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
-
+import account.Account;
 /**
  * PACKAGE_NAME
  * Created by Thai Son
@@ -14,11 +14,10 @@ public class ClientHandler implements Runnable{
     public static ArrayList<ClientHandler> lstClientHandler = new ArrayList<>();
     private Socket socket;
     private DataOutputStream dos;
-//    private BufferedReader bufferedReader;
     private DataInputStream dis;
-//    private BufferedWriter bufferedWriter;
-    private static ArrayList<String> lstClientUsername = new ArrayList<String>();
-    private String clientUsername;
+    public static  ArrayList<Account> lstAccount = new ArrayList<Account>();
+    private Account account;
+    private static String fileAreaPath;
     private boolean isLogin = false;
 
     public ClientHandler(Socket socket) {
@@ -26,30 +25,23 @@ public class ClientHandler implements Runnable{
             this.socket = socket;
             this.dos = new DataOutputStream(socket.getOutputStream());
             this.dis = new DataInputStream(socket.getInputStream());
-//            this.bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
-//            this.bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-//            this.clientUsername = bufferedReader.readLine();
-//            lstClientHandler.add(this);
-//            broadcastMessage("serverside.Server: " + this.clientUsername +" has joined the chat!");
+            fileAreaPath = new java.io.File(".").getCanonicalPath();
+            fileAreaPath += "\\src\\serverside\\filearea";
         }catch (IOException e){
             closeEverything(socket,dos,dis);
-//            closeEverything(socket, bufferedWriter ,bufferedReader);
         }
     }
 
     private void broadcastMessage(String messageToSend) {
+
         for(ClientHandler clientHandler : lstClientHandler){
             try{
-                if(clientHandler.clientUsername.equals(clientUsername) == false){
+                if(clientHandler.account.compareTo(account) == -1){
                     clientHandler.dos.writeUTF(messageToSend);
                     clientHandler.dos.flush();
-//                    clientHandler.bufferedWriter.write(messageToSend);
-//                    clientHandler.bufferedWriter.newLine();
-//                    clientHandler.bufferedWriter.flush();
                 }
             }catch(IOException e){
                 closeEverything(socket,dos,dis);
-//              closeEverything(socket, bufferedWriter, bufferedReader);
 
             }
         }
@@ -57,28 +49,10 @@ public class ClientHandler implements Runnable{
 
     public void removeClientHandler(){
         lstClientHandler.remove(this);
-        broadcastMessage("Server: " + clientUsername +" has left the chat!");
-    }
-
-    private void closeEverything(Socket socket, BufferedWriter bufferedWriter, BufferedReader bufferedReader) {
-        removeClientHandler();
-        try{
-            if(socket !=null){
-                socket.close();
-            }
-            if(bufferedWriter != null){
-                bufferedWriter.close();
-            }
-            if(bufferedReader != null){
-                bufferedReader.close();
-            }
-        }catch (IOException e){
-            e.printStackTrace();
-        }
-
     }
 
     private void closeEverything(Socket socket, DataOutputStream dos, DataInputStream dis) {
+        removeClientHandler();
         try{
             if(socket !=null){
                 socket.close();
@@ -94,66 +68,114 @@ public class ClientHandler implements Runnable{
         }
     }
 
+    public void sendFile(File file){
+        try{
+
+            FileInputStream fileInputStream = new FileInputStream(file.getAbsoluteFile());
+
+            String fileName = file.getName();
+            byte[] fileNameBytes = fileName.getBytes();
+
+            byte[] fileContentBytes = new byte[(int) file.length()];
+            fileInputStream.read(fileContentBytes);
+
+            dos.writeInt(fileNameBytes.length);
+            dos.write(fileNameBytes);
+            dos.writeInt(fileContentBytes.length);
+            dos.write(fileContentBytes);
+            fileInputStream.close();
+        }catch(IOException ioe){
+            ioe.printStackTrace();
+        }
+    }
+
+    public void receiveFile(String address){
+        try{
+
+            int fileNameLength = dis.readInt();
+
+            if(fileNameLength > 0){
+                byte[] fileNameBytes = new byte[fileNameLength];
+                dis.readFully(fileNameBytes, 0, fileNameLength);
+                String fileName = new String(fileNameBytes);
+
+                int fileContentLength = dis.readInt();
+
+                if(fileContentLength > 0){
+                    byte[] fileContentBytes = new byte[fileContentLength];
+                    dis.readFully(fileContentBytes,0,fileContentLength);
+                    FileOutputStream fileOutputStream = new FileOutputStream(address + "\\" + fileName);
+                    fileOutputStream.write(fileContentBytes);
+                    fileOutputStream.close();
+                }
+            }
+
+        }catch(IOException ioe){
+            ioe.printStackTrace();
+        }
+    }
+
+    public static Account processReqAuthenticate(String msgFromClient){
+        StringBuilder data = new StringBuilder(msgFromClient);
+        int index = data.indexOf("}");
+        String username = data.substring(1,index);
+        String password = data.substring(index+2,data.length()-1);
+        Account tempAccount = new Account(username,password);
+        return tempAccount;
+    }
+
     @Override
     public void run() {
         String[] tokens;
-
         while(socket.isConnected()){
             try{
-                String messageFromClient = dis.readUTF();
-//                String messageFromClient = bufferedReader.readLine();
-                System.out.println(messageFromClient);
-                if(messageFromClient != null) {
-                    tokens = messageFromClient.split(": ");
+                String msgFromClient = dis.readUTF();
+                System.out.println(msgFromClient);
+                if(msgFromClient != null) {
+                    tokens = msgFromClient.split("`");
+                    if (tokens[0].equals("{login}")) {
+                        account = processReqAuthenticate(tokens[1]+tokens[2]);
+                        if (lstAccount.contains(account)) {
+                            isLogin = true;
+                            lstClientHandler.add(this);
+                            dos.writeUTF("{login}`{server}`{success}");
+                        } else {
+                            dos.writeUTF("{login}`{server}`{fail}");
 
-                    if(tokens[0].equals("guess")){
-                        String[] temp = tokens[1].split("\\-");
-                        if(temp[1].equals("login request")){
-
-                            if(lstClientUsername.contains(temp[0])){
-                                isLogin = true;
-                                clientUsername = temp[0];
-
-                                broadcastMessage("Server: " + clientUsername + " has joined the chat");
-                                lstClientHandler.add(this);
-//                                bufferedWriter.write("Server: login-valid");
-                                dos.writeUTF("Server: login-valid");
-                            }else{
-//                                bufferedWriter.write("Server: login-invalid");
-                                dos.writeUTF("Server: login-invalid");
-                            }
-                        }else if(temp[1].equals("signup request")){
-                            if(lstClientUsername.contains(temp[0])){
-//                                bufferedWriter.write("Server: signup-invalid");
-                                dos.writeUTF("Server: signup-invalid");
-                            }else{
-                                lstClientUsername.add(temp[0]);
-//                                bufferedWriter.write("Server: signup-valid");
-                                dos.writeUTF("Server: signup-valid");
-                            }
                         }
-//                        bufferedWriter.newLine();
+                    } else if (tokens[0].equals("{signup}")) {
+                        account = processReqAuthenticate(tokens[1]+tokens[2]);
+                        if (lstAccount.contains(account)) {
+                            dos.writeUTF("{signup}`{server}`{fail}");
+                        } else {
+                            lstAccount.add(account);
+                            dos.writeUTF("{signup}`{server}`{success}");
+                        }
+                    } else if (tokens[0].equals("{logout}")) {
+                        isLogin=false;
+                        dos.writeUTF("{logout}`{server}`{success}");
                         dos.flush();
-                        //bufferedWriter.write("guess: " + tokens[1] + " login request");
-                    }else if(tokens[0].equals("send")){
-                        broadcastMessage(this.clientUsername +": " + tokens[1]);
-                    }else if(tokens[0].equals("send file")){
+                    } else if (tokens[0].equals("{msgBroadcast}")) {
 
-                    }else if(tokens[0].equals("logout")){
-                        dos.writeUTF("Server: logout-success");
-                        dos.flush();
-
-//                        bufferedWriter.write("Server: logout-success");
-//                        bufferedWriter.newLine();
-//                        bufferedWriter.flush();
-//                        closeEverything(socket,bufferedWriter,bufferedReader);
+                        broadcastMessage(msgFromClient);
+                    } else if (tokens[0].equals("{uploadfile}")) {
+                        receiveFile(fileAreaPath);
+                        broadcastMessage(msgFromClient);
+                    } else if (tokens[0].equals("{downloadfile}")) {
+                        String fileName = new String(tokens[2].substring(1,tokens[2].length()-1));
+                        File f = new File(fileAreaPath + "\\" + fileName);
+                        if(f.exists() && !f.isDirectory()){
+                            dos.writeUTF("{downloadfile}`{server}`{file exist}");
+                            dos.flush();
+                            sendFile(f);
+                        }
                     }
                 }
             }catch (IOException e){
-//                closeEverything(socket,bufferedWriter,bufferedReader);
                 closeEverything(socket,dos,dis);
                 break;
             }
         }
     }
+
 }

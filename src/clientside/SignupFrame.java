@@ -15,18 +15,19 @@ public class SignupFrame extends JFrame implements ActionListener {
     JLabel lbHeader, lbUsername,lbPassword, lbConfirmPassword;
     JTextField tfUsername;
     JPasswordField pfPassword, pfConfirmPassword;
-
+    Client client;
     JButton btnSignup, btnBack;
 
-    SignupFrame(){
+    SignupFrame(Client client){
         super();
+        this.client = client;
         setTitle("Signup");
         setLayout(new BorderLayout());
         initComponent();
         setDefaultLookAndFeelDecorated(true);
         setVisible(true);
         setMinimumSize(new Dimension(300,200));
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         pack();
     }
 
@@ -79,13 +80,25 @@ public class SignupFrame extends JFrame implements ActionListener {
     @Override
     public void actionPerformed(ActionEvent e) {
         if(e.getSource() == btnSignup){
-
+            String username = tfUsername.getText();
+            String password = pfPassword.getText();
+            String cfmPassword = pfConfirmPassword.getText();
+            if(username.isEmpty() == true || password.isEmpty() == true || cfmPassword.isEmpty()){
+                JOptionPane.showMessageDialog(this, "username or password can't be empty");
+            }else if(!password.equals(cfmPassword)){
+                JOptionPane.showMessageDialog(this, "confirm password incorrect");
+            }else{
+                client.reqAuthenticate("signup",username,password);
+                boolean check = client.authenticateRes();
+                if(check == true){
+                    JOptionPane.showMessageDialog(this,"Signup success");
+                }else{
+                    JOptionPane.showMessageDialog(this,"Signup fail");
+                }
+            }
         }else if(e.getSource() == btnBack){
             this.dispose();
         }
     }
 
-    public static void main(String[] args){
-        new SignupFrame();
-    }
 }

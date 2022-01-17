@@ -4,6 +4,8 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.IOException;
+import java.net.Socket;
 
 /**
  * clientside
@@ -15,7 +17,7 @@ public class ConnectFrame extends JFrame implements ActionListener {
     JLabel lbHeader, lbHost,lbPort;
     JTextField tfHost, tfPort;
     JButton btnConnect, btnExit;
-
+    Client client;
     ConnectFrame(){
         super();
         setTitle("Connect to server");
@@ -25,7 +27,6 @@ public class ConnectFrame extends JFrame implements ActionListener {
         setVisible(true);
         setMinimumSize(new Dimension(300,200));
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        pack();
     }
 
     private void initComponent(){
@@ -69,10 +70,6 @@ public class ConnectFrame extends JFrame implements ActionListener {
         jc.add(c, gbc);
     }
 
-    public static void main(String[] args){
-        new ConnectFrame();
-    }
-
     @Override
     public void actionPerformed(ActionEvent e) {
         if(e.getSource() == btnConnect){
@@ -81,10 +78,33 @@ public class ConnectFrame extends JFrame implements ActionListener {
             if(port.isEmpty() == true || host.isEmpty() == true){
                 JOptionPane.showMessageDialog(this, "Host or Port can't be empty");
             }else{
-                new LoginFrame();
+                Socket socket=null;
+                try {
+                    socket = new Socket(host,Integer.parseInt(port));
+                    if(socket.isConnected()) {
+                        Client client = new Client(socket);
+                        SwingUtilities.invokeLater(new Runnable() {
+                            @Override
+                            public void run() {
+                                LoginFrame lF = new LoginFrame(client);
+                            }
+                        });
+                    }
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                } finally {
+                    if(socket.isConnected()){
+                        this.dispose();
+                    }
+                }
             }
         }else if(e.getSource() == btnExit){
-
+            this.dispose();
         }
+    }
+
+    public static void main(String[] args){
+
+        ConnectFrame cF = new ConnectFrame();
     }
 }

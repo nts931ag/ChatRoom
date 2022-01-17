@@ -4,6 +4,8 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.IOException;
+import java.net.Socket;
 
 /**
  * clientside
@@ -15,11 +17,12 @@ public class LoginFrame extends JFrame implements ActionListener {
     JLabel lbHeader, lbUsername,lbPassword;
     JTextField tfUsername;
     JPasswordField pfPassword;
-
+    Client client;
     JButton btnLogin, btnSignup;
 
-    LoginFrame(){
+    LoginFrame(Client client){
         super();
+        this.client = client;
         setTitle("Login");
         setLayout(new BorderLayout());
         initComponent();
@@ -27,7 +30,6 @@ public class LoginFrame extends JFrame implements ActionListener {
         setVisible(true);
         setMinimumSize(new Dimension(300,200));
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        pack();
     }
 
     private void initComponent(){
@@ -74,14 +76,28 @@ public class LoginFrame extends JFrame implements ActionListener {
     @Override
     public void actionPerformed(ActionEvent e) {
         if(e.getSource() == btnLogin){
-
+            String username = tfUsername.getText();
+            String password = pfPassword.getText();
+            if(username.isEmpty() == true || password.isEmpty() == true){
+                JOptionPane.showMessageDialog(this, "username or password can't be empty");
+            }else{
+                client.reqAuthenticate("login",username,password);
+                boolean check = client.authenticateRes();
+                if(check == true){
+                    SwingUtilities.invokeLater(new Runnable() {
+                        @Override
+                        public void run() {
+                            new ChatFrame(client);
+                        }
+                    });
+                    this.dispose();
+                }else{
+                    JOptionPane.showMessageDialog(this,"Sign in fail");
+                }
+            }
         }else if(e.getSource() == btnSignup){
-            new SignupFrame();
+            new SignupFrame(client);
         }
-    }
-
-    public static void main(String[] args){
-        new LoginFrame();
     }
 
 }
