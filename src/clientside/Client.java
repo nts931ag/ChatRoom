@@ -20,7 +20,6 @@ public class Client {
     private DataInputStream dis;
 //    private String username;
     private Account account;
-    private boolean isLogin = false;
 
     public Client(Socket socket){
         try{

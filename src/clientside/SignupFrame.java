@@ -29,6 +29,7 @@ public class SignupFrame extends JFrame implements ActionListener {
         setMinimumSize(new Dimension(300,200));
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         pack();
+        setLocationRelativeTo(null);
     }
 
     private void initComponent(){
@@ -92,6 +93,7 @@ public class SignupFrame extends JFrame implements ActionListener {
                 boolean check = client.authenticateRes();
                 if(check == true){
                     JOptionPane.showMessageDialog(this,"Signup success");
+                    this.dispose();
                 }else{
                     JOptionPane.showMessageDialog(this,"Signup fail");
                 }

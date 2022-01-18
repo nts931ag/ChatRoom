@@ -10,7 +10,7 @@ import java.net.Socket;
  * Date 05/01/2022 - 12:06 CH
  * Description: ...
  */
-public class Server {
+public class Server extends Thread {
     public ServerSocket serverSocket;
 
     public Server(ServerSocket serverSocket){
@@ -31,7 +31,12 @@ public class Server {
         }
     }
 
-    private void closeServer() {
+    @Override
+    public void run(){
+        startServer();
+    }
+
+    public void closeServer() {
         try{
             if(serverSocket!=null){
                 serverSocket.close();
@@ -39,11 +44,5 @@ public class Server {
         }catch (IOException e){
             e.printStackTrace();
         }
-    }
-
-    public static void main(String[] args) throws Exception{
-        ServerSocket serverSocket = new ServerSocket(5555);
-        Server server = new Server(serverSocket);
-        server.startServer();
     }
 }

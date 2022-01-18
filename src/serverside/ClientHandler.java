@@ -18,7 +18,6 @@ public class ClientHandler implements Runnable{
     public static  ArrayList<Account> lstAccount = new ArrayList<Account>();
     private Account account;
     private static String fileAreaPath;
-    private boolean isLogin = false;
 
     public ClientHandler(Socket socket) {
         try{
@@ -26,7 +25,7 @@ public class ClientHandler implements Runnable{
             this.dos = new DataOutputStream(socket.getOutputStream());
             this.dis = new DataInputStream(socket.getInputStream());
             fileAreaPath = new java.io.File(".").getCanonicalPath();
-            fileAreaPath += "\\src\\serverside\\filearea";
+            fileAreaPath += "\\filearea";
         }catch (IOException e){
             closeEverything(socket,dos,dis);
         }
@@ -136,7 +135,6 @@ public class ClientHandler implements Runnable{
                     if (tokens[0].equals("{login}")) {
                         account = processReqAuthenticate(tokens[1]+tokens[2]);
                         if (lstAccount.contains(account)) {
-                            isLogin = true;
                             lstClientHandler.add(this);
                             dos.writeUTF("{login}`{server}`{success}");
                         } else {
@@ -152,9 +150,11 @@ public class ClientHandler implements Runnable{
                             dos.writeUTF("{signup}`{server}`{success}");
                         }
                     } else if (tokens[0].equals("{logout}")) {
-                        isLogin=false;
+                        broadcastMessage("{notiLogout}`{Server}`{"+account.getUsername()+" has been left the chat}");
                         dos.writeUTF("{logout}`{server}`{success}");
                         dos.flush();
+                        closeEverything(socket,dos,dis);
+                        break;
                     } else if (tokens[0].equals("{msgBroadcast}")) {
 
                         broadcastMessage(msgFromClient);

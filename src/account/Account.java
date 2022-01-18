@@ -37,7 +37,7 @@ public class Account implements Comparable<Account>{
 
     @Override
     public int compareTo(Account o) {
-        if(this.username.equalsIgnoreCase(o.getUsername())){
+        if(this.username.equalsIgnoreCase(o.getUsername())&&this.password.equalsIgnoreCase(o.getPassword())){
             return 1;
         }
         return -1;
@@ -48,7 +48,9 @@ public class Account implements Comparable<Account>{
         boolean retVal = false;
         if (v instanceof Account){
             Account a = (Account) v;
-            retVal = a.getUsername().equalsIgnoreCase(username);
+            if(a.getUsername().equalsIgnoreCase(username)&&a.getPassword().equalsIgnoreCase(password))
+                retVal = true;
+
         }
         return  retVal;
     }

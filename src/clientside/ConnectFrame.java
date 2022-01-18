@@ -27,6 +27,8 @@ public class ConnectFrame extends JFrame implements ActionListener {
         setVisible(true);
         setMinimumSize(new Dimension(300,200));
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        pack();
+        setLocationRelativeTo(null);
     }
 
     private void initComponent(){

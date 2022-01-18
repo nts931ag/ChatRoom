@@ -37,28 +37,38 @@ public class ChatFrame extends JFrame implements ActionListener {
         initComponent();
         setDefaultLookAndFeelDecorated(true);
         setVisible(true);
-        setSize(500,400);
+        setMinimumSize(new Dimension(500,400));
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        pack();
+        setLocationRelativeTo(null);
     }
 
     private void initComponent() {
+        Font font = new Font(Font.SERIF,Font.BOLD,25);
         JLabel header = new JLabel("Chat Room");
+        header.setFont(font);
+        header.setHorizontalAlignment(SwingConstants.CENTER);
         add(header,BorderLayout.NORTH);
 
         //center
         centerPanel = new JPanel(new BorderLayout());
         receiveArea = new JTextArea(10,1);
-        receiveArea.setEnabled(false);
+        receiveArea.setEditable(false);
+        font = new Font(Font.SERIF,Font.BOLD,13);
+        receiveArea.setFont(font);
+        receiveArea.setPreferredSize(new Dimension(300,150));
+        receiveArea.setBorder(BorderFactory.createMatteBorder(2,2,2,2,Color.BLACK));
         centerPanel.add(receiveArea,BorderLayout.CENTER);
         JPanel sendArea = new JPanel(new GridBagLayout());
         tfMsg = new JTextField();
         btnSend = new JButton("send");
-        tfMsg.setPreferredSize(new Dimension(150,50));
-        addConstrainToComponent(sendArea,tfMsg,0,0,3,1);
-        addConstrainToComponent(sendArea,btnSend,3,0,1,1);
+        tfMsg.setPreferredSize(new Dimension(200,50));
+        tfMsg.setMinimumSize(new Dimension(200,50));
+        addConstrainToComponent(sendArea,tfMsg,0,0,1,1);
+        addConstrainToComponent(sendArea,btnSend,1,0,1,1);
         centerPanel.add(sendArea,BorderLayout.SOUTH);
-        centerPanel.setBorder(new EmptyBorder(2,2,2,2));
-        centerPanel.setPreferredSize(new Dimension(300,200));
+        centerPanel.setBorder(new EmptyBorder(1,1,1,1));
+        centerPanel.setSize(new Dimension(300,200));
         add(centerPanel,BorderLayout.CENTER);
 
         //east
@@ -104,17 +114,20 @@ public class ChatFrame extends JFrame implements ActionListener {
                 while(socket.isConnected()){
                     try{
                         String msgFromServer = dis.readUTF();
-                        System.out.println(msgFromServer);
                         if(msgFromServer != null){
                             tokens = msgFromServer.split("`");
                             if(tokens[0].equals("{logout}")){
                                 if(tokens[2].equals("sucess")){
                                     client.closeEverything(socket,dos,dis);
+
                                     break;
                                 }
+                            }else if(tokens[0].equals("{notiLogout}")){
+                                String username = new String(tokens[1].substring(1,tokens[1].length()-1));
+                                String message = new String(tokens[2].substring(1,tokens[2].length()-1));
+                                receiveArea.append(username+": "+message+"\n");
                             }else if(tokens[0].equals("{downloadfile}")){
                                 if(tokens[2].equals("{file exist}")){
-                                    System.out.println("hihi");
                                     client.receiveFile(pathFileDownload);
                                 }else{
                                     JOptionPane.showMessageDialog(null, "file not exist");
@@ -157,6 +170,9 @@ public class ChatFrame extends JFrame implements ActionListener {
             }
             tfMsg.setText("");
         }else if (e.getSource() == btnLogout){
+            client.sendMessage("logout","has been left the chat room");
+            System.exit(0);
+            this.dispose();
 
         }else if (e.getSource() == btnDownFile){
             int row = tbFile.getSelectedRow();

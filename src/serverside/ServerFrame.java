@@ -27,6 +27,7 @@ public class ServerFrame extends JFrame implements ActionListener {
         setVisible(true);
         setMinimumSize(new Dimension(300,200));
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
         pack();
     }
 
@@ -71,28 +72,41 @@ public class ServerFrame extends JFrame implements ActionListener {
     }
 
     public static void main(String args[]){
-        new ServerFrame();
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                new ServerFrame();
+            }
+        });
     }
 
     @Override
     public void actionPerformed(ActionEvent e) {
         if(e.getSource() == btnStart){
             String port = portTf.getText();
+            System.out.println(port);
             if(port.isEmpty()){
                JOptionPane.showMessageDialog(this,"Enter port to start server");
             }else {
                 try {
-                    ServerSocket serverSocket= new ServerSocket(Integer.getInteger(port));
-                    Server server = new Server(serverSocket);
+                    int value = Integer.parseInt(port);
+                    ServerSocket serverSocket = new ServerSocket(value);
+                    server = new Server(serverSocket);
+                    Thread t = new Thread(server);
+                    t.start();
+                    portTf.setEditable(false);
+                    status.setText("ON");
+                    status.setForeground(Color.GREEN);
                 } catch (IOException ex) {
                     ex.printStackTrace();
                 }
-                portTf.setEditable(false);
-                status.setText("ON");
-                status.setForeground(Color.GREEN);
+
             }
         }
         else if(e.getSource() == btnStop){
+            if(server!=null){
+                server.closeServer();
+            }
             portTf.setEditable(true);
             status.setText("OFF");
             status.setForeground(Color.RED);
